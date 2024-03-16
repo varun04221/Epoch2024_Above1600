@@ -1,112 +1,44 @@
-# Memory Management System
+# EPOCH
 
-A custom memory management system (MeMS) using the C programming language. MeMS utilize the system calls mmap and munmap for memory allocation and deallocation, respectively.
+This is our Final Submission for EPOCH 2024 Hackathon Problem Statement 4
 
-## Table of Contents
+# Proposed Solution
 
--   [Memory Management System](#Memory-Management-System)
-    -   [Constraints and Requirements](#constraints-and-Requirements)
-    -   [Free List Structure](#Free-List-Structure)
-    -   [MeMS Virtual Address and MeMS Physical Address](#MeMS-Virtual-Address-and-MeMS-Physical-Address)
-    -   [Function Implementations](#Function-Implementations)
+## Overview
 
-## Constraints and Requirements
+The proposed solution aims to segment a set of datapoints into k regions and find optimized lines for each cluster. This process involves two main steps: data segregation using agglomerative clustering and line optimization through self regression model.
 
--   MeMS solely use the system calls mmap and munmap and don't use of any other memory management library functions such as malloc, calloc, free, and realloc for memory management
--   Request memory from the OS using mmap in multiples of the system's PAGE_SIZE , for my systems its 4096 bytes (4KB)
--   Deallocate memory through munmap which occur in multiples of PAGE_SIZE.
+## Steps
 
-## Free List Structure
+### Data Segregation using Agglomerative Clustering
 
-MeMS maintains a free list data structure to keep track of the heap memory which MeMS has requested from the OS. This free list keeps track of two items:
+1. Given k as the number of lines to be laid down, the first step involves segregating the datapoints into k regions.
+2. Agglomerative clustering, a hierarchical clustering technique, is employed for this purpose.
+3. This method starts by considering each data point as a separate cluster and then iteratively merges the closest pairs of clusters until k clusters are formed.
 
--   **PROCESS -** Memory allocated to each user program.
--   **HOLE -** Memory which has not been allocated to any user program.
+#### Reasons to Use Agglomerative Clustering
 
-Free List is represented as a doubly linked list. Let's call this doubly linked list as the main chain of the free list. The main features of the main chain are:
+Agglomerative clustering is chosen for data segregation due to the following reasons:
 
-1. Whenever MeMS requests memory from the OS (using mmap), it adds a new node to the main chain.
-2. Each node of the main chain points to another doubly linked list which we call as sub-chain. This sub-chain can contain multiple nodes. Each node corresponds to a segment of memory within the range of the memory defined by its main chain node. Some of these nodes (segments) in the sub-chain are mapped to the user program. We call such nodes (segments) as PROCESS nodes. Rest of the nodes in the sub-chain are not mapped to the user program and are called as HOLES or HOLE nodes.
+-   **Hierarchical Nature**: Agglomerative clustering creates a hierarchy of clusters, which can be useful for understanding the data structure at different levels of granularity.
+-   **Flexibility**: It allows for the incorporation of various distance metrics and linkage criteria, making it adaptable to different types of data and clustering objectives.
+-   **Ease of Implementation**: Agglomerative clustering is relatively straightforward to implement and interpret, making it suitable for prototyping and exploratory data analysis tasks.
 
-![Free_list](free_list.png)
+### Cluster Optimization for Line Placement
 
-Whenever the user program requests for memory from MeMS, MeMS first tries to find a sufficiently large segment in any sub-chain of any node in the main chain. If a sufficiently large segment is found, MeMS uses it to allocate memory to the user program and updates the segment’s type from HOLE to PROCESS. Else, MeMS requests the OS to allocate more memory on the heap (using mmap) and add a new node corresponding to it in the main chain.
+1. Once the data is segmented into k clusters, the next step is to find the optimal line for each cluster.
+2. A self regression model is employed for this optimization process.
+3. Equally spaced points are selected on the plane of points, denoted as b.
+4. For each of these points, the line is rotated around it to explore various orientations.
+5. Subsequently, the cost of each line is calculated.
 
-The segments of type HOLE can be reallocated to any new requests by the user process. In this scenario, if some space remains after allocation then the remaining part becomes a new segment of type HOLE in that sub-chain
+### Cost Calculation and Line Selection
 
-System avoids memory fragmentation within the free list by combining two adjacent HOLES in subchain
+1. The cost of each line configuration is determined based on predefined criteria
+   ![dist](dist.png)
 
-## MeMS Virtual Address and MeMS Physical Address
+2. The line configuration that yields the minimum cost among all possibilities is selected as the target line for the respective cluster.
 
-The address (memory location) returned by mmap be the MeMS physical address. In reality, the address returned by mmap is actually a virtual address in the virtual address space of the process in which MeMS is running.Since we are simulating memory management by the OS, we will call the virtual address returned by mmap as MeMS physical address.
+## Conclusion
 
-Just like a call to mmap returns a virtual address in the virtual address space of the calling process, a call to mems_malloc will return a MeMS virtual address in the MeMS virtual address space of the calling process.MeMS manages heap memory for only one process at a time.
-
-Just like OS maintains a mapping from virtual address space to physical address space, MeMS maintains a mapping from MeMS virtual address space to MeMS physical address space. So, for every MeMS physical address (which is provided by mmap), we need to assign a MeMS virtual address. This MeMS virtual address has no meaning outside the MeMS system.
-
-Any time the user process wants to write/store anything to the heap, it has to make use of the MeMS virtual address. But we cannot directly write using MeMS virtual address as the OS does not have any understanding of MeMS virtual address space. Therefore, we first get the MeMS physical address for that MeMS virtual address. Then, the user process needs to use this MeMS physical address to write on the heap.
-
-![address mapping](mapping.png)
-
-## Function Implementations
-
-1. void mems_init(): Initializes all the required parameters for the MeMS system. The main parameters to be initialized are
-   the head of the free list i.e. the pointer that points to the head of the free list
-   the starting MeMS virtual address from which the heap in our MeMS virtual address space will start.
-   any other global variable that you want for the MeMS implementation can be initialized here.  
-   Input Parameter: Nothing  
-   Returns: Nothing
-
-2. void mems_finish(): This function will be called at the end of the MeMS system and its main job is to unmap the allocated memory using the munmap system call.  
-   Input Parameter: Nothing  
-   Returns: Nothing
-
-3. void\* mems_malloc(size_t size): Allocates memory of the specified size by reusing a segment from the free list if a sufficiently large segment is available. Else, uses the mmap system call to allocate more memory on the heap and updates the free list accordingly.  
-   Parameter: The size of the memory the user program wants  
-   Returns: MeMS Virtual address (that is created by MeMS)
-
-4. void mems_free(void\* ptr): Frees the memory pointed by ptr by marking the corresponding sub-chain node in the free list as HOLE. Once a sub-chain node is marked as HOLE, it becomes available for future allocations.  
-   Parameter: MeMS Virtual address (that is created by MeMS)  
-   Returns: nothing
-
-5. void mems_print_stats(): Prints the total number of mapped pages (using mmap) and the unused memory in bytes (the total size of holes in the free list). It also prints details about each node in the main chain and each segment (PROCESS or HOLE) in the sub-chain.  
-   Parameter: Nothing  
-   Returns: Nothing but should print the necessary information on STDOUT
-
-6. void \*mems_get(void\* v_ptr): Returns the MeMS physical address mapped to ptr ( ptr is MeMS virtual address).  
-   Parameter: MeMS Virtual address (that is created by MeMS)  
-   Returns: MeMS physical address mapped to the passed ptr (MeMS virtual address).
-
-### How to run the exmaple.c
-
-After implementing functions in mems.h follow the below steps to run example.c file
-
-```
-$ make
-$ ./example
-```
-
-### Output to example.c
-
-![Output](example_output.jpg)
-
-## Steps to run Test cases
-
--   Clone this repo
--   Place the mems.h or any other header file along this repository. i.e. mems.h and MeMS-Test-Cases in same folder.
--   Set Starting Virtual Address=0 & PAGE_SIZE=4096
--   run following command to execute test cases
-
-```
-$ cd MeMS-Test-Cases/<test-type>
-$ make
-$ ./test<test-case-number>
-```
-
--   One example is:
-
-```
-$ cd MeMS-Test-Cases/easy
-$ make
-$ ./test4
-```
+This approach ensures that each cluster is associated with an optimized line placement, facilitating effective data representation or separation based on the problem requirements.
