@@ -1,6 +1,7 @@
 # EPOCH
 
 This is our Final Submission for EPOCH 2024 Hackathon Problem Statement 4
+Google Colab Link:https://colab.research.google.com/drive/1LXu-xqzJuaZ1n4PfqSN6EL9DECaselI0?usp=sharing
 
 # Proposed Solution
 
