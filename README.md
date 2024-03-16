@@ -14,7 +14,7 @@ The proposed solution aims to segment a set of datapoints into k regions and fin
 
 1. Given k as the number of lines to be laid down, the first step involves segregating the datapoints into k regions.
 2. Agglomerative clustering, a hierarchical clustering technique, is employed for this purpose.
-3. This method starts by considering each data point as a separate cluster and then iteratively merges the closest pairs of clusters until k clusters are formed.
+3. This method starts by considering each data point as a separate cluster and then iteratively merges the closest pairs of clusters until K clusters are formed.
 
 #### Reasons to Use Agglomerative Clustering
 
